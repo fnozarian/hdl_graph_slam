@@ -10,9 +10,9 @@
 
 namespace hdl_graph_slam {
 
-KeyFrame::KeyFrame(const ros::Time& stamp, const Eigen::Isometry3d& odom, double accum_distance, const pcl::PointCloud<PointT>::ConstPtr& cloud) : stamp(stamp), odom(odom), accum_distance(accum_distance), cloud(cloud), node(nullptr) {}
+KeyFrame::KeyFrame(const ros::Time& stamp, const Eigen::Isometry3d& odom, double accum_distance, const pcl::PointCloud<PointT>::ConstPtr& cloud) : stamp(stamp), odom(odom), accum_distance(accum_distance), cloud(cloud), node(nullptr), initial_pose_set_(false), prev_transform_(Eigen::Isometry3d::Identity()) {}
 
-KeyFrame::KeyFrame(const std::string& directory, g2o::HyperGraph* graph) : stamp(), odom(Eigen::Isometry3d::Identity()), accum_distance(-1), cloud(nullptr), node(nullptr) {
+KeyFrame::KeyFrame(const std::string& directory, g2o::HyperGraph* graph) : stamp(), odom(Eigen::Isometry3d::Identity()), accum_distance(-1), cloud(nullptr), node(nullptr), initial_pose_set_(false), prev_transform_(Eigen::Isometry3d::Identity()) {
   load(directory, graph);
 }
 
@@ -31,6 +31,21 @@ void KeyFrame::save(const std::string& directory) {
 
   ofs << "odom\n";
   ofs << odom.matrix() << "\n";
+
+  Eigen::IOFormat* commaInitFmt = new Eigen::IOFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, " ", " ", "", "", "", "");
+  auto parent_dir = boost::filesystem::path(directory).parent_path();
+  std::cout << parent_dir << std::endl;
+  
+  auto accum_stamps = parent_dir / "accum_stamps";
+  std::ofstream ofs_accum_stamps(accum_stamps.c_str(), std::ios_base::app);
+  ofs_accum_stamps << stamp.sec << " " << stamp.nsec << std::endl;
+  
+  auto accum_odom_path = parent_dir / "accum_odom";
+  std::ofstream ofs_accum_odom(accum_odom_path.c_str(), std::ios_base::app);
+
+  Eigen::Isometry3d relative_to_beginning = prev_transform_.inverse() * odom;
+  prev_transform_ = relative_to_beginning;
+  ofs_accum_odom << relative_to_beginning.matrix().block<3, 4>(0, 0, 3, 4).format(*commaInitFmt) << std::endl;
 
   ofs << "accum_distance " << accum_distance << "\n";
 

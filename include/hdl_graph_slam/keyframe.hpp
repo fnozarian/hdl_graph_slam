@@ -42,7 +42,8 @@ public:
   pcl::PointCloud<PointT>::ConstPtr cloud;        // point cloud
   boost::optional<Eigen::Vector4d> floor_coeffs;  // detected floor's coefficients
   boost::optional<Eigen::Vector3d> utm_coord;     // UTM coord obtained by GPS
-
+  bool initial_pose_set_;
+  Eigen::Isometry3d prev_transform_;
   boost::optional<Eigen::Vector3d> acceleration;    //
   boost::optional<Eigen::Quaterniond> orientation;  //
 
